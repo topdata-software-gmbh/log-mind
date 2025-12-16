@@ -100,9 +100,10 @@ class VectorStore:
         """
         Searches for the most relevant logs based on the query vector.
         """
-        results = self.client.search(
+        response = self.client.query_points(
             collection_name=COLLECTION_NAME,
-            query_vector=vector,
+            query=vector,
             limit=limit,
+            with_payload=True,
         )
-        return [hit.payload for hit in results if hit.payload]
+        return [point.payload for point in response.points if point.payload]
