@@ -50,7 +50,29 @@ def ingest(
 
     # 2. Initialize Core Systems
     ai = AIClient()
-    db = VectorStore()
+    try:
+        db = VectorStore()
+    except Exception as e:
+        console.print(f"[bold red]Qdrant init failed:[/bold red] {e}")
+        raise typer.Exit(code=1)
+
+    status = db.get_status()
+    if status.get("connected") is True:
+        console.print(
+            "[bold green]Qdrant:[/bold green] "
+            f"{status.get('host')}:{status.get('port')} "
+            f"collection={status.get('collection')} "
+            f"exists={status.get('collection_exists')} "
+            f"points={status.get('points_count')}"
+        )
+    else:
+        console.print(
+            "[bold red]Qdrant:[/bold red] "
+            f"{status.get('host')}:{status.get('port')} "
+            f"collection={status.get('collection')} "
+            f"connected=False "
+            f"error={status.get('error')}"
+        )
 
     # 3. Embed and Store
     vectors = []

@@ -31,6 +31,35 @@ class VectorStore:
                 ),
             )
 
+    def get_status(self) -> Dict[str, Any]:
+        status: Dict[str, Any] = {
+            "host": QDRANT_HOST,
+            "port": QDRANT_PORT,
+            "collection": COLLECTION_NAME,
+        }
+
+        try:
+            self.client.get_collections()
+            status["connected"] = True
+        except Exception as e:
+            status["connected"] = False
+            status["error"] = str(e)
+            return status
+
+        try:
+            collection_exists = self.client.collection_exists(COLLECTION_NAME)
+            status["collection_exists"] = collection_exists
+
+            if collection_exists:
+                info = self.client.get_collection(COLLECTION_NAME)
+                status["collection_status"] = getattr(info, "status", None)
+                status["points_count"] = getattr(info, "points_count", None)
+                status["vectors_count"] = getattr(info, "vectors_count", None)
+        except Exception as e:
+            status["collection_error"] = str(e)
+
+        return status
+
     def upsert_logs(
         self, logs: List[Dict[str, Any]], vectors: List[List[float]]
     ) -> None:
