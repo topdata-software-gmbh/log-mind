@@ -8,6 +8,9 @@ from logmind.config import (
     COLLECTION_NAME,
     QDRANT_HOST,
     QDRANT_PORT,
+    QDRANT_TIMEOUT_SECONDS,
+    QDRANT_UPSERT_BATCH_SIZE,
+    QDRANT_UPSERT_WAIT,
     VECTOR_SIZE,
 )
 
@@ -18,7 +21,11 @@ class VectorStore:
     """
 
     def __init__(self) -> None:
-        self.client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+        self.client = QdrantClient(
+            host=QDRANT_HOST,
+            port=QDRANT_PORT,
+            timeout=QDRANT_TIMEOUT_SECONDS,
+        )
         self._ensure_collection()
 
     def _ensure_collection(self) -> None:
@@ -66,6 +73,11 @@ class VectorStore:
         """
         Stores log entries and their vectors in Qdrant.
         """
+        if len(logs) != len(vectors):
+            raise ValueError(
+                f"logs/vectors length mismatch: logs={len(logs)} vectors={len(vectors)}"
+            )
+
         points = [
             models.PointStruct(
                 id=str(uuid.uuid4()),
@@ -75,8 +87,14 @@ class VectorStore:
             for log, vector in zip(logs, vectors)
         ]
 
-        # In a real scenario, use batching for large lists
-        self.client.upsert(collection_name=COLLECTION_NAME, points=points)
+        batch_size = max(1, int(QDRANT_UPSERT_BATCH_SIZE))
+        for i in range(0, len(points), batch_size):
+            batch = points[i : i + batch_size]
+            self.client.upsert(
+                collection_name=COLLECTION_NAME,
+                points=batch,
+                wait=QDRANT_UPSERT_WAIT,
+            )
 
     def search(self, vector: List[float], limit: int = 5) -> List[Dict[str, Any]]:
         """
