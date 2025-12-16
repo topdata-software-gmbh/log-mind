@@ -1,3 +1,4 @@
+import uuid
 from typing import Any, Dict, List, Optional
 
 from qdrant_client import QdrantClient
@@ -38,11 +39,11 @@ class VectorStore:
         """
         points = [
             models.PointStruct(
-                id=self._generate_id(idx),
+                id=str(uuid.uuid4()),
                 vector=vector,
                 payload=log,
             )
-            for idx, (log, vector) in enumerate(zip(logs, vectors))
+            for log, vector in zip(logs, vectors)
         ]
 
         # In a real scenario, use batching for large lists
@@ -58,11 +59,3 @@ class VectorStore:
             limit=limit,
         )
         return [hit.payload for hit in results if hit.payload]
-
-    def _generate_id(self, offset: int) -> int:
-        """
-        Helper to generate an ID.
-        Note: In production, UUIDs are preferred over count-based IDs to avoid collisions.
-        """
-        info = self.client.get_collection(COLLECTION_NAME)
-        return info.points_count + offset + 1

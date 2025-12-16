@@ -7,7 +7,7 @@ from rich.progress import track
 
 from logmind.core.ai import AIClient
 from logmind.core.db import VectorStore
-from logmind.utils.parser import parse_log_file
+from logmind.utils.parser import load_file
 
 app = typer.Typer()
 console = Console()
@@ -22,7 +22,7 @@ def ingest(
             file_okay=True,
             dir_okay=False,
             readable=True,
-            help="Path to the log file to ingest",
+            help="Path to the log file (supports .log, .txt, .csv, .json)",
         ),
     ],
 ) -> None:
@@ -33,12 +33,12 @@ def ingest(
 
     # 1. Parse Logs
     try:
-        chunks = parse_log_file(file_path)
+        chunks = load_file(file_path)
     except Exception as e:
         console.print(f"[bold red]Failed to parse file:[/bold red] {e}")
         raise typer.Exit(code=1)
 
-    console.print(f"Found {len(chunks)} log chunks.")
+    console.print(f"Found {len(chunks)} log entries.")
 
     # 2. Initialize Core Systems
     ai = AIClient()

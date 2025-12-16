@@ -44,6 +44,19 @@ Ask questions in natural language. LogMind retrieves relevant log chunks and gen
 logmind analyze "Why did the database connection fail around 8 AM?"
 ```
 
+### 3. Database Logs (Shopware/Magento/Etc)
+
+To analyze logs stored in a database:
+
+1. **Export the table** to CSV or JSON (e.g., via Adminer, phpMyAdmin, or SQL command).
+2. **Ingest the file**:
+
+    ```bash
+    logmind ingest path/to/shopware_export.csv
+    ```
+
+LogMind automatically detects `.csv` or `.json` files and treats each row/object as a distinct log entry, preserving the column structure (for example `exception_class`, `response_body`) for better AI analysis.
+
 ## Development
 
 - **Format Code**: `uv run ruff format .`
