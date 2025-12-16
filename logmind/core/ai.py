@@ -1,11 +1,11 @@
-import logging
 import os
-from typing import List
+from typing import List, Optional
 
+import litellm
 from litellm import completion, embedding
 from rich.console import Console
 
-from logmind.config import EMBEDDING_MODEL, LLM_MODEL
+from logmind.config import EMBEDDING_MODEL, LLM_MODEL, MAX_EMBEDDING_INPUT_CHARS
 
 console = Console()
 
@@ -16,19 +16,43 @@ class AIClient:
     """
 
     @staticmethod
-    def get_embedding(text: str) -> List[float]:
+    def get_embedding(text: str) -> Optional[List[float]]:
         """
         Generates a vector embedding for the given text.
         """
+        if not text or not text.strip():
+            return None
+
+        if len(text) > MAX_EMBEDDING_INPUT_CHARS:
+            console.print(
+                f"[dim yellow]Warning: Log entry too long ({len(text)} chars). "
+                f"Truncating to {MAX_EMBEDDING_INPUT_CHARS} chars.[/dim yellow]"
+            )
+            text = text[:MAX_EMBEDDING_INPUT_CHARS]
+
         try:
-            api_key = os.getenv("OPENAI_API_KEY")
-            kwargs = {"api_key": api_key} if api_key else {}
-            response = embedding(model=EMBEDDING_MODEL, input=[text], **kwargs)
-            # Type ignore because litellm response dict is dynamic
-            return response["data"][0]["embedding"]  # type: ignore
+            return AIClient._call_embedding_api(text)
+        except litellm.ContextWindowExceededError:
+            console.print("[red]Token limit exceeded. Retrying with aggressive truncation...[/red]")
+            try:
+                shorter_text = text[: int(MAX_EMBEDDING_INPUT_CHARS / 2)]
+                return AIClient._call_embedding_api(shorter_text)
+            except Exception as e:
+                console.print(
+                    f"[bold red]Failed to embed log entry even after truncation:[/bold red] {e}"
+                )
+                return None
         except Exception as e:
             console.print(f"[bold red]Error generating embedding:[/bold red] {e}")
-            raise
+            return None
+
+    @staticmethod
+    def _call_embedding_api(text: str) -> List[float]:
+        """Helper to make the actual API call."""
+        api_key = os.getenv("OPENAI_API_KEY")
+        kwargs = {"api_key": api_key} if api_key else {}
+        response = embedding(model=EMBEDDING_MODEL, input=[text], **kwargs)
+        return response["data"][0]["embedding"]  # type: ignore
 
     @staticmethod
     def generate_response(prompt: str, context: str) -> str:

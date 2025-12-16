@@ -56,15 +56,29 @@ def ingest(
     vectors = []
     logs_to_store = []
 
+    skipped_count = 0
+
     try:
         for chunk in track(chunks, description="Generating embeddings..."):
             vector = ai.get_embedding(chunk["content"])
+            if vector is None:
+                skipped_count += 1
+                continue
+
             vectors.append(vector)
             logs_to_store.append(chunk)
 
-        console.print("[yellow]Storing in Qdrant...[/yellow]")
-        db.upsert_logs(logs_to_store, vectors)
-        console.print("[bold green]Ingestion complete![/bold green]")
+        if skipped_count > 0:
+            console.print(
+                f"[yellow]Skipped {skipped_count} entries due to embedding errors/size limits.[/yellow]"
+            )
+
+        if logs_to_store:
+            console.print(f"[yellow]Storing {len(logs_to_store)} entries in Qdrant...[/yellow]")
+            db.upsert_logs(logs_to_store, vectors)
+            console.print("[bold green]Ingestion complete![/bold green]")
+        else:
+            console.print("[bold red]No valid logs to store.[/bold red]")
 
     except Exception as e:
         console.print(f"[bold red]Ingestion failed:[/bold red] {e}")

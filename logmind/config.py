@@ -21,6 +21,11 @@ VECTOR_SIZE = 1536  # Adjust based on your embedding model
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o")
 
+# Safety Limits
+# approx 1 token = 4 chars. 8192 tokens ~= 32k chars.
+# We set a conservative limit to leave room for overhead.
+MAX_EMBEDDING_INPUT_CHARS = 24_000
+
 # CLI Settings
 CLI_CONTEXT_SETTINGS = {
     "help_option_names": ["-h", "--help"],
