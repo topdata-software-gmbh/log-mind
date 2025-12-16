@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import List
 
 from litellm import completion, embedding
@@ -20,7 +21,9 @@ class AIClient:
         Generates a vector embedding for the given text.
         """
         try:
-            response = embedding(model=EMBEDDING_MODEL, input=[text])
+            api_key = os.getenv("OPENAI_API_KEY")
+            kwargs = {"api_key": api_key} if api_key else {}
+            response = embedding(model=EMBEDDING_MODEL, input=[text], **kwargs)
             # Type ignore because litellm response dict is dynamic
             return response["data"][0]["embedding"]  # type: ignore
         except Exception as e:
@@ -49,7 +52,9 @@ class AIClient:
         ]
 
         try:
-            response = completion(model=LLM_MODEL, messages=messages)
+            api_key = os.getenv("OPENAI_API_KEY")
+            kwargs = {"api_key": api_key} if api_key else {}
+            response = completion(model=LLM_MODEL, messages=messages, **kwargs)
             return response["choices"][0]["message"]["content"]  # type: ignore
         except Exception as e:
             console.print(f"[bold red]Error generating response:[/bold red] {e}")

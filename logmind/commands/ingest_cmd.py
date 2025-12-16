@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Annotated
 
+import os
 import typer
 from rich.console import Console
 from rich.progress import track
@@ -30,6 +31,13 @@ def ingest(
     Ingest a log file into the vector database.
     """
     console.print(f"[bold blue]Processing file:[/bold blue] {file_path}")
+
+    if not os.getenv("OPENAI_API_KEY"):
+        console.print(
+            "[bold yellow]OPENAI_API_KEY is not set for this process.[/bold yellow] "
+            "If you're running via sudo, your shell env may not be preserved. "
+            "Try `sudo -E ...` or put the key into the project's `.env` file."
+        )
 
     # 1. Parse Logs
     try:

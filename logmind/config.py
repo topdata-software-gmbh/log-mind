@@ -3,12 +3,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+ROOT_DIR = Path(__file__).parent.parent
+
 # Load environment variables
-load_dotenv()
+load_dotenv(dotenv_path=ROOT_DIR / ".env")
 
 # Application Settings
 APP_NAME = "LogMind"
-ROOT_DIR = Path(__file__).parent.parent
 
 # Qdrant Settings
 QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
