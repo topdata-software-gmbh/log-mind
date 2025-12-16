@@ -4,6 +4,7 @@ import typer
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
+from rich.text import Text
 
 from logmind.core.ai import AIClient
 from logmind.core.db import VectorStore
@@ -32,6 +33,9 @@ def analyze(
 
         # 1. Vector Search
         query_vector = ai.get_embedding(query)
+        if query_vector is None:
+            console.print("[bold red]Failed to generate query embedding.[/bold red]")
+            raise typer.Exit(code=1)
         results = db.search(query_vector, limit=limit)
 
         if not results:
@@ -57,10 +61,22 @@ def analyze(
 
         # 3. AI Analysis
         with console.status("[bold green]Thinking...[/bold green]"):
-            answer = ai.generate_response(query, context_str)
+            result = ai.generate_response(query, context_str)
+
+        content = result.get("content", "No analysis returned.")
+        model = result.get("model", "unknown")
+        cost = result.get("cost", 0.0)
+
+        subtitle = Text(f"Model: {model} | Cost: ${cost:.6f}", style="dim italic")
 
         console.print(
-            Panel(Markdown(answer), title="AI Analysis", border_style="green")
+            Panel(
+                Markdown(content),
+                title="AI Analysis",
+                subtitle=subtitle,
+                subtitle_align="right",
+                border_style="green",
+            )
         )
 
     except Exception as e:

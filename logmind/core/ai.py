@@ -1,8 +1,8 @@
 import os
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import litellm
-from litellm import completion, embedding
+from litellm import completion, completion_cost, embedding
 from rich.console import Console
 
 from logmind.config import EMBEDDING_MODEL, LLM_MODEL, MAX_EMBEDDING_INPUT_CHARS
@@ -55,9 +55,10 @@ class AIClient:
         return response["data"][0]["embedding"]  # type: ignore
 
     @staticmethod
-    def generate_response(prompt: str, context: str) -> str:
+    def generate_response(prompt: str, context: str) -> Dict[str, Any]:
         """
         Generates a natural language response based on the query and context.
+        Returns a dictionary containing the content, model used, and estimated cost.
         """
         messages = [
             {
@@ -79,7 +80,24 @@ class AIClient:
             api_key = os.getenv("OPENAI_API_KEY")
             kwargs = {"api_key": api_key} if api_key else {}
             response = completion(model=LLM_MODEL, messages=messages, **kwargs)
-            return response["choices"][0]["message"]["content"]  # type: ignore
+
+            content = response["choices"][0]["message"]["content"]  # type: ignore
+            model_used = response.get("model", LLM_MODEL)  # type: ignore
+
+            try:
+                cost = completion_cost(completion_response=response)
+            except Exception:
+                cost = 0.0
+
+            return {
+                "content": content,
+                "model": model_used,
+                "cost": cost,
+            }
         except Exception as e:
             console.print(f"[bold red]Error generating response:[/bold red] {e}")
-            return "Failed to generate analysis."
+            return {
+                "content": "Failed to generate analysis.",
+                "model": LLM_MODEL,
+                "cost": 0.0,
+            }
